@@ -127,24 +127,9 @@ def graph_text(ranks: dict[str, float], highlighted: set[str]) -> str:
 
 st.set_page_config(page_title="Python PageRank Search",
                    page_icon="i", layout="wide")
-st.markdown(
-    """
-    <style>
-    .stApp { background: #f5f6f0; color: #192126; }
-    [data-testid="stHeader"] { background: transparent; }
-    .hero { padding: 2rem 0 1.5rem; }
-    .eyebrow { color: #6f7a7c; font: 700 0.72rem Arial, sans-serif; letter-spacing: .16em; text-transform: uppercase; }
-    h1 { font-family: Georgia, serif !important; font-weight: 500 !important; letter-spacing: -.04em; }
-    .result { background: white; border: 1px solid #dfe4df; padding: 1.1rem 1.25rem; margin: .75rem 0; }
-    .result h3 { font-family: Georgia, serif; font-weight: 500; margin: 0 0 .35rem; }
-    .meta, .description { color: #6f7a7c; font: .88rem/1.45 Arial, sans-serif; }
-    .tag { background: #eef1ec; color: #53605c; display: inline-block; font: .72rem Arial, sans-serif; margin: .7rem .35rem 0 0; padding: .3rem .45rem; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown('<div class="hero"><div class="eyebrow">ProjectGroup_4 / Python-only search engine</div><h1>Find the pages that matter.</h1><p class="description">PageRank, search ranking, graph data, and this interface are all implemented in Python.</p></div>', unsafe_allow_html=True)
+st.caption("PROJECTGROUP_4 / PYTHON-ONLY SEARCH ENGINE")
+st.title("Find the pages that matter.")
+st.write("PageRank, search ranking, graph data, and this interface are all implemented in Python.")
 
 with st.sidebar:
     st.markdown("### Ranking controls")
@@ -156,10 +141,7 @@ with st.sidebar:
     st.metric("Known links", sum(len(page["links"]) for page in PAGES))
 
 query = st.text_input("Search the local web graph", "how does the web work")
-search_button = st.button("Search index", type="primary")
-if search_button:
-    st.session_state["query"] = query
-active_query = st.session_state.get("query", query)
+active_query = query
 
 results = search_pages(active_query, damping, iterations)
 ranks = calculate_pagerank(damping, iterations)
@@ -172,22 +154,24 @@ with results_column:
     if not results:
         st.info("No pages matched that query. Try a broader phrase.")
     for index, page in enumerate(results, 1):
-        st.markdown(
-            f'''<article class="result"><div class="meta">{index:02d} / {page["domain"]}</div><h3>{page["title"]}</h3><div class="description">{page["text"]}</div><span class="tag">match {page["relevance"]:.0%}</span><span class="tag">authority {page["authority"]:.0%}</span><span class="tag">{len(page["links"])} outbound links</span></article>''',
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.caption(f"{index:02d} / {page['domain']}")
+            st.subheader(page["title"])
+            st.write(page["text"])
+            st.write(
+                f"Match: {page['relevance']:.0%} · "
+                f"Authority: {page['authority']:.0%} · "
+                f"Links: {len(page['links'])}"
+            )
 
 with graph_column:
     st.subheader("The web graph")
     st.caption(
-        "Node size represents PageRank authority; coral nodes match the query.")
+        "Node size represents authority; highlighted nodes match the query.")
     st.graphviz_chart(graph_text(ranks, highlighted), use_container_width=True)
     st.subheader("PageRank scores")
-    st.dataframe(
-        [{"page": page["title"], "authority": round(ranks[page["id"]], 4)} for page in sorted(
-            PAGES, key=lambda item: ranks[item["id"]], reverse=True)],
-        hide_index=True,
-        use_container_width=True,
-    )
+    scores = [{"page": page["title"], "authority": round(ranks[page["id"]], 4)}
+              for page in sorted(PAGES, key=lambda item: ranks[item["id"]], reverse=True)]
+    st.dataframe(scores, hide_index=True, use_container_width=True)
 
 st.caption("Search score = 68% keyword relevance + 32% normalized PageRank authority. This is an educational corpus and does not crawl the public web.")
